@@ -5,18 +5,19 @@ import { ErrorResponse } from "src/error-response";
 const resolvePath = require("object-resolve-path");
 import { CohortMembersDto } from "src/cohortMembers/dto/cohortMembers.dto";
 import { CohortMembersSearchDto } from "src/cohortMembers/dto/cohortMembers-search.dto";
-import { CohortMembers } from "./entities/cohort-member.entity";
+import { CohortMembers } from "src/cohortMembers/entities/cohort-member.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { IsNull, Not, Repository, getConnection, getRepository } from "typeorm";
-import { CohortDto } from "../cohort/dto/cohort.dto";
+import { CohortDto } from "src/cohort/dto/cohort.dto";
 import APIResponse from "src/utils/response";
 import { HttpStatus } from "@nestjs/common";
 import response from "src/utils/response";
 import { User } from "src/user/entities/user-entity";
-import { CohortMembersUpdateDto } from "./dto/cohortMember-update.dto";
+import { CohortMembersUpdateDto } from "src/cohortMembers/dto/cohortMember-update.dto";
+import { ErrorResponseTypeOrm } from "src/error-response-typeorm";
 
 @Injectable()
-export class CohortMembersService {
+export class PostgresCohortMembersService {
   constructor(
     @InjectRepository(CohortMembers)
     private cohortMembersRepository: Repository<CohortMembers>
@@ -50,26 +51,16 @@ export class CohortMembersService {
           );
       }
 
-      return response
-        .status(HttpStatus.OK)
-        .send(
-          APIResponse.success(
-            apiId,
-            cohortMembers,
-            "Cohort Member Retrieved Successfully"
-          )
-        );
-    } catch (error) {
-      return response
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send(
-          APIResponse.error(
-            apiId,
-            "Something went wrong",
-            `Failure Retrieving Cohort Member. Error is: ${error}`,
-            "INTERNAL_SERVER_ERROR"
-          )
-        );
+      return new SuccessResponse({
+        statusCode: HttpStatus.OK,
+        message: "Cohort Member Retrieved successfully.",
+        data: cohortMembers,
+      });
+    } catch (e) {
+      return new ErrorResponseTypeOrm({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        errorMessage: e,
+      });
     }
   }
 
@@ -125,26 +116,16 @@ export class CohortMembersService {
         result.cohortData.push(cohortData);
       }
 
-      return response
-        .status(HttpStatus.OK)
-        .send(
-          APIResponse.success(
-            apiId,
-            result,
-            "Cohort Member Retrieved Successfully"
-          )
-        );
-    } catch (error) {
-      return response
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send(
-          APIResponse.error(
-            apiId,
-            "Something went wrong",
-            `Failure Retrieving Cohort Member. Error is: ${error}`,
-            "INTERNAL_SERVER_ERROR"
-          )
-        );
+      return new SuccessResponse({
+        statusCode: HttpStatus.OK,
+        message: "Cohort Member Retrieved successfully.",
+        data: result,
+      });
+    } catch (e) {
+      return new ErrorResponseTypeOrm({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        errorMessage: e,
+      });
     }
   }
   public async findCohortName(userId: any) {
@@ -183,26 +164,16 @@ export class CohortMembersService {
         cohortMembers
       );
 
-      return response
-        .status(HttpStatus.OK)
-        .send(
-          APIResponse.success(
-            apiId,
-            savedCohortMember,
-            "Cohort Member created Successfully"
-          )
-        );
-    } catch (error) {
-      return response
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send(
-          APIResponse.error(
-            apiId,
-            "Something went wrong",
-            `Failure creating Cohort Member. Error is: ${error}`,
-            "INTERNAL_SERVER_ERROR"
-          )
-        );
+      return new SuccessResponse({
+        statusCode: HttpStatus.OK,
+        message: "Cohort Member created successfully.",
+        data: savedCohortMember,
+      });
+    } catch (e) {
+      return new ErrorResponseTypeOrm({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        errorMessage: e,
+      });
     }
   }
 
@@ -228,26 +199,16 @@ export class CohortMembersService {
         cohortMemberToUpdate
       );
 
-      return response
-        .status(HttpStatus.OK)
-        .send(
-          APIResponse.success(
-            apiId,
-            updatedCohortMember,
-            "Cohort Member updated Successfully"
-          )
-        );
-    } catch (error) {
-      return response
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send(
-          APIResponse.error(
-            apiId,
-            "Something went wrong",
-            `Failure updating Cohort Member. Error is: ${error}`,
-            "INTERNAL_SERVER_ERROR"
-          )
-        );
+      return new SuccessResponse({
+        statusCode: HttpStatus.OK,
+        message: "Cohort Member Updated successfully.",
+        data: updatedCohortMember,
+      });
+    } catch (e) {
+      return new ErrorResponseTypeOrm({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        errorMessage: e,
+      });
     }
   }
 
@@ -276,26 +237,17 @@ export class CohortMembersService {
       const result = await this.cohortMembersRepository.delete(
         cohortMembershipId
       );
-      return response
-        .status(HttpStatus.OK)
-        .send(
-          APIResponse.success(
-            apiId,
-            result,
-            "Cohort Member deleted Successfully"
-          )
-        );
-    } catch (error) {
-      return response
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send(
-          APIResponse.error(
-            apiId,
-            "Something went wrong",
-            `Failure Retrieving Cohort Member. Error is: ${error}`,
-            "INTERNAL_SERVER_ERROR"
-          )
-        );
+
+      return new SuccessResponse({
+        statusCode: HttpStatus.OK,
+        message: "Cohort Member deleted Successfully.",
+        data: result,
+      });
+    } catch (e) {
+      return new ErrorResponseTypeOrm({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        errorMessage: e,
+      });
     }
   }
 }

@@ -1,5 +1,6 @@
 import { Exclude, Expose } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
+import { IsNotEmpty, IsUUID } from "class-validator";
 
 export class CohortMembersDto {
   //generated fields
@@ -22,6 +23,8 @@ export class CohortMembersDto {
   cohortId: string;
 
   //userId
+  @IsUUID()
+  @IsNotEmpty()
   @ApiProperty({
     type: String,
     description: "The userId of the cohort members",

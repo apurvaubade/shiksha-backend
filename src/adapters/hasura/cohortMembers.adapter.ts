@@ -17,7 +17,7 @@ export class HasuraCohortMembersService
     request: any,
     cohortMembers: CohortMembersDto
   ) {
-    try{
+    try {
       var axios = require("axios");
       let query = "";
       Object.keys(cohortMembers).forEach((e) => {
@@ -65,75 +65,11 @@ export class HasuraCohortMembersService
           data: result,
         });
       }
-    }catch (e) {
+    } catch (e) {
       console.error(e);
       return new ErrorResponse({
         errorCode: "400",
         errorMessage: e,
-      });
-    }
-  }
-
-  public async getCohortMembers(
-    tenantId: string,
-    cohortMembershipId: any,
-    request: any
-  ) {
-    var axios = require("axios");
-
-    var data = {
-      query: `query GetCohortMembers($cohortMembershipId:uuid!, $tenantId:uuid!) {
-        CohortMembers(
-          where:{
-            tenantId:{
-              _eq:$tenantId
-            }
-            cohortMembershipId:{
-              _eq:$cohortMembershipId
-            },
-          }
-        ){
-          tenantId
-          cohortMembershipId
-          cohortId
-          userId
-          role
-          createdAt
-          updatedAt
-          createdBy
-          updatedBy
-      }
-    }`,
-      variables: {
-        cohortMembershipId: cohortMembershipId,
-        tenantId: tenantId,
-      },
-    };
-
-    var config = {
-      method: "post",
-      url: process.env.REGISTRYHASURA,
-      headers: {
-        "x-hasura-admin-secret": process.env.REGISTRYHASURAADMINSECRET,
-        "Content-Type": "application/json",
-      },
-      data: data,
-    };
-
-    const response = await axios(config);
-
-    if (response?.data?.errors) {
-      return new ErrorResponse({
-        errorCode: response?.data?.errors[0]?.extensions?.code,
-        errorMessage: response?.data?.errors[0]?.message,
-      });
-    } else {
-      let result = response?.data?.data?.CohortMembers;
-      const cohortMembersResponse = await this.mappedResponse(result);
-      return new SuccessResponse({
-        statusCode: 200,
-        message: "Ok.",
-        data: cohortMembersResponse[0],
       });
     }
   }
@@ -143,7 +79,7 @@ export class HasuraCohortMembersService
     request: any,
     cohortMembersSearchDto: CohortMembersSearchDto
   ) {
-    try{
+    try {
       var axios = require("axios");
 
       let offset = 0;
@@ -214,7 +150,7 @@ export class HasuraCohortMembersService
           data: cohortMembersResponse,
         });
       }
-    }catch (e) {
+    } catch (e) {
       console.error(e);
       return new ErrorResponse({
         errorCode: "400",
@@ -222,7 +158,7 @@ export class HasuraCohortMembersService
       });
     }
   }
-
+  getCohortMembers(tenantid, cohortMemberId, response, request: any) {}
   public async updateCohortMembers(
     cohortMembershipId: string,
     request: any,
@@ -308,4 +244,6 @@ export class HasuraCohortMembersService
 
     return cohortMembersResponse;
   }
+
+  public async deleteCohortMemberById() {}
 }
