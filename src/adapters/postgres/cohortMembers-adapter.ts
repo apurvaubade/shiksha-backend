@@ -15,46 +15,182 @@ import response from "src/utils/response";
 import { User } from "src/user/entities/user-entity";
 import { CohortMembersUpdateDto } from "src/cohortMembers/dto/cohortMember-update.dto";
 import { ErrorResponseTypeOrm } from "src/error-response-typeorm";
+import { Fields } from "src/fields/entities/fields.entity";
 
 @Injectable()
 export class PostgresCohortMembersService {
   constructor(
     @InjectRepository(CohortMembers)
-    private cohortMembersRepository: Repository<CohortMembers>
+    private cohortMembersRepository: Repository<CohortMembers>,
+    @InjectRepository(Fields)
+    private fieldsRepository: Repository<Fields>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>
   ) {}
 
-  public async getCohortMembers(
-    tenantId: string,
-    // cohortMembershipId: any,
+  async getCohortMembers(
     userId: any,
-    response: any,
-    request: any
+
+    fieldvalue: any
   ) {
-    const apiId = "api.cohortMember.getCohortMembers";
     try {
-      const cohortMembers = await this.cohortMembersRepository.find({
-        where: {
-          tenantId: tenantId,
-          userId: userId,
-        },
+      if (fieldvalue === "false") {
+        const result = {
+          userData: {},
+        };
+
+        let customFieldsArray = [];
+
+        const [userDetails] = await Promise.all([this.findUserDetails(userId)]);
+        result.userData = userDetails;
+        return new SuccessResponse({
+          statusCode: HttpStatus.OK,
+          message: "Ok.",
+          data: result,
+        });
+      } else {
+        const result = {
+          userData: {},
+        };
+
+        let customFieldsArray = [];
+
+        const [filledValues, userDetails] = await Promise.all([
+          this.findFilledValues(userId),
+          this.findUserDetails(userId),
+        ]);
+
+        const customFields = await this.findCustomFields(userDetails.role);
+
+        result.userData = userDetails;
+        const filledValuesMap = new Map(
+          filledValues.map((item) => [item.fieldId, item.value])
+        );
+        for (let data of customFields) {
+          const fieldValue = filledValuesMap.get(data.fieldId);
+          const customField = {
+            fieldId: data.fieldId,
+            label: data.label,
+            value: fieldValue || "",
+            options: data?.fieldParams?.["options"] || {},
+            type: data.type || "",
+          };
+          customFieldsArray.push(customField);
+        }
+        result.userData["customFields"] = customFieldsArray;
+
+        return new SuccessResponse({
+          statusCode: HttpStatus.OK,
+          message: "Ok.",
+          data: result,
+        });
+      }
+    } catch (e) {
+      return new ErrorResponseTypeOrm({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        errorMessage: e,
       });
-      if (!cohortMembers || cohortMembers.length === 0) {
-        return response
-          .status(HttpStatus.NOT_FOUND)
-          .send(
-            APIResponse.error(
-              apiId,
-              `Cohort Member Id is wrong`,
-              `Cohort Member not found`,
-              "COHORT_Member_NOT_FOUND"
-            )
-          );
+    }
+  }
+
+  async findFilledValues(userId: string) {
+    let query = `SELECT U."userId",F."fieldId",F."value" FROM public."Users" U 
+    LEFT JOIN public."FieldValues" F
+    ON U."userId" = F."itemId" where U."userId" =$1`;
+    let result = await this.usersRepository.query(query, [userId]);
+    return result;
+  }
+
+  async findUserDetails(userId, username?: any) {
+    let whereClause: any = { userId: userId };
+    if (username && userId === null) {
+      delete whereClause.userId;
+      whereClause.username = username;
+    }
+    let userDetails = await this.usersRepository.findOne({
+      where: whereClause,
+    });
+    return userDetails;
+  }
+
+  async findCustomFields(role) {
+    let customFields = await this.fieldsRepository.find({
+      where: {
+        context: "USERS",
+        contextType: role.toUpperCase(),
+      },
+    });
+    return customFields;
+  }
+
+  async findUsertDetails(userId: string) {
+    let whereClause: any = { userId: userId };
+    let userDetails = await this.usersRepository.findOne({
+      where: whereClause,
+    });
+    return userDetails;
+  }
+  async searchFindCustomFields() {
+    let customFields = await this.fieldsRepository.find({
+      where: {
+        context: "COHORT",
+        contextType: "COHORT",
+      },
+    });
+    return customFields;
+  }
+
+  public async searchCohortMembers(
+    cohortMembersSearchDto: CohortMembersSearchDto
+  ) {
+    try {
+      let { limit, page, filters } = cohortMembersSearchDto;
+      let offset = 0;
+      if (page > 1) {
+        offset = parseInt(limit) * (page - 1);
+      }
+      if (limit.trim() === "") {
+        limit = "0";
+      }
+      const whereClause = {};
+      if (filters && Object.keys(filters).length > 0) {
+        Object.entries(filters).forEach(([key, value]) => {
+          whereClause[key] = value;
+        });
+      }
+
+      const [userData] = await this.cohortMembersRepository.findAndCount({
+        where: whereClause,
+        skip: offset,
+        take: parseInt(limit),
+      });
+      let results = {
+        userDetails: [],
+      };
+
+      if (whereClause["cohortId"]) {
+        let req = 1;
+        let cohortDetails = await this.getUsersDetailsByCohortId(
+          whereClause["cohortId"],
+          req
+        );
+        results.userDetails.push(cohortDetails);
+      }
+
+      if (whereClause["userId"]) {
+        let fieldvalue = 1;
+
+        let cohortDetails = await this.getCohortMembers(
+          whereClause["userId"],
+          fieldvalue
+        );
+        results.userDetails.push(cohortDetails);
       }
 
       return new SuccessResponse({
         statusCode: HttpStatus.OK,
-        message: "Cohort Member Retrieved successfully.",
-        data: cohortMembers,
+        message: "Ok.",
+        data: results,
       });
     } catch (e) {
       return new ErrorResponseTypeOrm({
@@ -64,61 +200,36 @@ export class PostgresCohortMembersService {
     }
   }
 
-  public async searchCohortMembers(
-    tenantId: string,
-    request: any,
-    cohortMembersSearchDto: CohortMembersSearchDto,
-    response: any
-  ) {
-    const apiId = "api.cohortMember.searchCohortMembers";
-
+  async getUsersDetailsByCohortId(cohortId: any, response: any) {
+    let apiId = "api.users.getAllUsersDetails";
     try {
-      let { limit, page, filters } = cohortMembersSearchDto;
-      if (!limit) {
-        limit = "0";
-      }
-
-      let offset = 0;
-      if (page > 1) {
-        offset = parseInt(limit) * (page - 1);
-      }
-
-      const whereClause = {};
-      if (filters && Object.keys(filters).length > 0) {
-        Object.entries(filters).forEach(([key, value]) => {
-          whereClause[key] = value;
-        });
-      }
-
-      let findCohortId = await this.findCohortName(whereClause["userId"]);
+      let getUserDetails = await this.findUserName(cohortId);
 
       let result = {
-        cohortData: [],
+        userDetails: [],
       };
 
-      for (let data of findCohortId) {
-        let cohortData = {
-          cohortId: data.cohortId,
+      for (let data of getUserDetails) {
+        let userDetails = {
+          userId: data.userId,
+          userName: data.userName,
           name: data.name,
+          role: data.role,
+          district: data.district,
+          state: data.state,
+          mobile: data.mobile,
           customField: [],
         };
+        const fieldValues = await this.getFieldandFieldValues(data.userId);
 
-        let filterDetails = {
-          where: data.cohortId,
-          take: parseInt(limit),
-          skip: offset,
-        };
+        userDetails.customField.push(fieldValues);
 
-        const getDetails = await this.getUserDetails(filterDetails);
-        console.log(getDetails);
-        cohortData.customField.push(getDetails);
-
-        result.cohortData.push(cohortData);
+        result.userDetails.push(userDetails);
       }
 
       return new SuccessResponse({
         statusCode: HttpStatus.OK,
-        message: "Cohort Member Retrieved successfully.",
+        message: "Ok.",
         data: result,
       });
     } catch (e) {
@@ -128,29 +239,28 @@ export class PostgresCohortMembersService {
       });
     }
   }
-  public async findCohortName(userId: any) {
-    let query = `SELECT c."name",c."cohortId"
-    FROM public."CohortMembers" AS cm
-    LEFT JOIN public."Cohort" AS c ON cm."cohortId" = c."cohortId"
-    WHERE cm."userId"=$1`;
-    let result = await this.cohortMembersRepository.query(query, [userId]);
+
+  async findUserName(cohortId: string) {
+    let query = `SELECT U."userId", U.username, U.name, U.role, U.district, U.state,U.mobile FROM public."CohortMembers" CM   
+    LEFT JOIN public."Users" U 
+    ON CM."userId" = U."userId"
+    where CM."cohortId" =$1 `;
+
+    let result = await this.usersRepository.query(query, [cohortId]);
+
     return result;
   }
 
-  public async getUserDetails(filter) {
-    let query = `SELECT DISTINCT f."label", fv."value", f."type", f."fieldParams"
-    FROM public."CohortMembers" cm
-    LEFT JOIN (
-        SELECT DISTINCT ON (fv."fieldId", fv."itemId") fv.*
-        FROM public."FieldValues" fv
-    ) fv ON fv."itemId" = cm."cohortId"
-    INNER JOIN public."Fields" f ON fv."fieldId" = f."fieldId"
-    WHERE cm."cohortId" = $1;`;
-    let result = await this.cohortMembersRepository.query(query, [
-      filter.where,
-    ]);
+  async getFieldandFieldValues(userId: string) {
+    let query = `SELECT Fv."fieldId",F."label" AS FieldName,Fv."value" as FieldValues 
+    FROM public."FieldValues" Fv   
+    LEFT JOIN public."Fields" F
+    ON F."fieldId" = Fv."fieldId"
+    where Fv."itemId" =$1 `;
+    let result = await this.usersRepository.query(query, [userId]);
     return result;
   }
+
   public async createCohortMembers(
     request: any,
     cohortMembers: CohortMembersDto,

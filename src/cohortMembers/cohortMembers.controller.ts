@@ -6,6 +6,7 @@ import {
   ApiBasicAuth,
   ApiHeader,
   ApiOkResponse,
+  ApiQuery,
 } from "@nestjs/swagger";
 import {
   Controller,
@@ -24,6 +25,7 @@ import {
   UseGuards,
   UsePipes,
   ValidationPipe,
+  Query,
 } from "@nestjs/common";
 import { CohortMembersSearchDto } from "./dto/cohortMembers-search.dto";
 import { Request } from "@nestjs/common";
@@ -69,12 +71,6 @@ export class CohortMembersController {
     };
     Object.assign(cohortMembersDto, payload);
 
-    // return this.cohortMembersService.createCohortMembers(
-    //   request,
-    //   cohortMembersDto,
-    //   response
-    // );
-
     const result = await this.cohortMemberAdapter
       .buildCohortMembersAdapter()
       .createCohortMembers(request, cohortMembersDto, response);
@@ -82,28 +78,31 @@ export class CohortMembersController {
   }
 
   //get cohort members
-  @Get("/:id")
-  // @UseInterceptors(ClassSerializerInterceptor)
+  @Get("/:userId")
+  @UseInterceptors(ClassSerializerInterceptor)
   @ApiBasicAuth("access-token")
-  @ApiOkResponse({ description: "Cohort Members detail" })
+  @ApiCreatedResponse({ description: "Cohort Members detail" })
   @ApiForbiddenResponse({ description: "Forbidden" })
-  @SerializeOptions({
-    strategy: "excludeAll",
-  })
-  @ApiHeader({
-    name: "tenantid",
+  @SerializeOptions({ strategy: "excludeAll" })
+  @ApiHeader({ name: "tenantid" })
+  @ApiQuery({
+    name: "fieldvalue",
+    description: "The field Value (optional)",
+    required: false,
   })
   public async getCohortMembers(
     @Headers() headers,
-    @Param("cohortMemberId") cohortMemberId: string,
+    @Param("userId") userId: string,
     @Req() request: Request,
-    @Res() response: Response
+    @Res() response: Response,
+    @Query("fieldvalue") fieldvalue: string | null = null
   ) {
     let tenantid = headers["tenantid"];
 
     const result = await this.cohortMemberAdapter
       .buildCohortMembersAdapter()
-      .getCohortMembers(tenantid, cohortMemberId, response, request);
+      .getCohortMembers(userId, fieldvalue);
+
     return response.status(result.statusCode).json(result);
   }
 
@@ -127,16 +126,10 @@ export class CohortMembersController {
     @Body() cohortMembersSearchDto: CohortMembersSearchDto
   ) {
     let tenantid = headers["tenantid"];
-    // return this.cohortMembersService.searchCohortMembers(
-    //   tenantid,
-    //   request,
-    //   cohortMembersSearchDto,
-    //   response
-    // );
 
     const result = await this.cohortMemberAdapter
       .buildCohortMembersAdapter()
-      .searchCohortMembers(tenantid, request, cohortMembersSearchDto, response);
+      .searchCohortMembers(cohortMembersSearchDto);
     return response.status(result.statusCode).json(result);
   }
 

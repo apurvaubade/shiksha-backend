@@ -11,10 +11,12 @@ import { PostgresProgramService } from "src/adapters/postgres/rbac/program-adapt
 import { PostgresModule } from "src/adapters/postgres/potsgres-module";
 import { PostgresCohortMembersService } from "src/adapters/postgres/cohortMembers-adapter";
 import { HasuraCohortMembersService } from "src/adapters/hasura/cohortMembers.adapter";
+import { Fields } from "src/fields/entities/fields.entity";
+import { User } from "src/user/entities/user-entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CohortMembers]),
+    TypeOrmModule.forFeature([CohortMembers, Fields, User]),
     HttpModule,
     HasuraModule,
     PostgresModule,

@@ -8,13 +8,8 @@ export interface IServicelocatorcohortMembers {
     cohortMembersDto: CohortMembersDto,
     response: any
   );
-  getCohortMembers(tenantid, cohortMemberId: string, response, request: any);
-  searchCohortMembers(
-    tenantid,
-    request: any,
-    cohortMembersSearchDto: CohortMembersSearchDto,
-    response: any
-  );
+  getCohortMembers(cohortMemberId: string, fieldvalue);
+  searchCohortMembers(cohortMembersSearchDto: CohortMembersSearchDto);
   updateCohortMembers(
     cohortMembershipId: string,
     request: any,
