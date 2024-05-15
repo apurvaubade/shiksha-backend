@@ -14,6 +14,7 @@ import {
   UsePipes,
   ValidationPipe,
   HttpStatus,
+  Delete,
 } from "@nestjs/common";
 
 import { Request } from "@nestjs/common";
@@ -40,8 +41,8 @@ import { JwtAuthGuard } from "src/common/guards/keycloak.guard";
 import { Response } from "express";
 import { isUUID } from "class-validator";
 import { SuccessResponse } from "src/success-response";
+
 @ApiTags("User")
-@UseGuards(JwtAuthGuard)
 @Controller("users")
 export class UserController {
   constructor(
@@ -78,7 +79,6 @@ export class UserController {
 
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe())
   @ApiBasicAuth("access-token")
   @ApiCreatedResponse({ description: "User has been created successfully." })
@@ -156,4 +156,27 @@ export class UserController {
       .buildUserAdapter()
       .resetUserPassword(request, reqBody.username, reqBody.newPassword);
   }
+
+    //delete
+    @Delete("/:userId")
+ 
+    @ApiBasicAuth("access-token")
+    @ApiCreatedResponse({ description: "User deleted successfully" })
+    @ApiNotFoundResponse({ description: "Data not found" })
+    @SerializeOptions({
+      strategy: "excludeAll",
+    })
+   
+    public async deleteUserById(
+      @Headers() headers,
+      @Param("userId") userId: string,
+      @Req() request: Request,
+      @Res() response: Response
+    ) {
+  
+      const result = await this.userAdapter
+        .buildUserAdapter()
+        .deleteUserById(userId);
+      return response.status(result.statusCode).json(result);
+    }
 }

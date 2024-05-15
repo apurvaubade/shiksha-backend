@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { HttpStatus, Injectable } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { SuccessResponse } from "src/success-response";
 import { IServicelocator } from "../userservicelocator";
@@ -16,15 +16,21 @@ import {
 } from "../../common/utils/keycloak.adapter.util";
 import { UserCreateDto } from "src/user/dto/user-create.dto";
 import { FieldValuesDto } from "src/fields/dto/field-values.dto";
-import { Response } from "express";
+import { Response, response } from "express";
+import { ErrorResponseTypeOrm } from "src/error-response-typeorm";
+import { InjectRepository } from "@nestjs/typeorm";
+import { User } from "src/user/entities/user-entity";
+import { Repository } from "typeorm";
 
 @Injectable()
 export class HasuraUserService implements IServicelocator {
   axios = require("axios");
 
   constructor(
+   
     private httpService: HttpService,
     private fieldsService: FieldsService
+    
   ) {}
   public async findUserDetails(userID: any, username: String) {
     
@@ -941,4 +947,7 @@ export class HasuraUserService implements IServicelocator {
       return e;
     }
   }
-}
+
+  public async deleteUserById(userId){}
+  }
+
